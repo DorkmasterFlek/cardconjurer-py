@@ -1,0 +1,93 @@
+{% extends "creator/_base.html" %}
+{% load static %}
+
+{% block bootstrap %}{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'cardconjurer_static/css/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'cardconjurer_static/css/style-9.css' %}">
+
+    <script type="application/javascript">
+        // Whether we're editing a back face or not.
+        const EDITING_BACK = {% if editing_back %}true{% else %}false{% endif %};
+
+        // Override default CSS theme for background image to work inline here.  This gets loaded by CardConjurer.
+        const defaultTheme = {
+            huerotate: 0,
+            background: '{% static 'cardconjurer_static/img/lowpolyBackground.svg' %}',
+            readablebrightness: 0.3,
+            rainbow: 0
+        };
+        localStorage.setItem('theme', JSON.stringify(defaultTheme));
+
+        // If we're editing an existing card, do NOT auto load frame version or it will mess up the layout on load.
+        localStorage.setItem('autoLoadFrameVersion', {% if card %}false{% else %}true{% endif %});
+
+        // Disable auto-frame by default for new cards.  Otherwise, load the saved one if we have it.
+        // For new cards, default to the regular option.
+        {% if face_to_edit.autoFrame %}
+            localStorage.setItem('autoFrame', "{{ face_to_edit.autoFrame }}");
+        {% elif face_to_edit %}
+            localStorage.setItem('autoFrame', "false");
+        {% else %}
+            localStorage.setItem('autoFrame', "M15Regular-1");
+        {% endif %}
+
+        // Set default collector set code based on our set.
+        let collector = {
+            number: (new Date()).getFullYear(),
+            rarity: "P",
+            lang: "EN",
+            note: "",
+            starDot: false
+        };
+        {% if card %}
+            collector.setCode = "{{ card.set.code }}";
+        {% elif set %}
+            collector.setCode = "{{ set.code }}";
+        {% endif %}
+        localStorage.setItem('defaultCollector', JSON.stringify(collector));
+    </script>
+
+    <script defer src="{% static 'cardconjurer_static/js/themes.js' %}"></script>
+    <script defer src="{% static 'cardconjurer_static/js/main-1.js' %}"></script>
+{% endblock %}
+
+{% block body %}
+    <div class='background'></div>
+    <div class='notification-container'></div>
+    <div id="content">
+        {% if card %}
+            <a href="{% url 'view-card' card.pk %}">
+                <h3 class="selectable readable-background">&lt;&lt; Cancel Edit</h3>
+            </a>
+        {% elif set %}
+            <a href="{% url 'view-set' set.pk %}">
+                <h3 class="selectable readable-background">&lt;&lt; Cancel Add</h3>
+            </a>
+        {% endif %}
+        {% include "creator/index.html" %}
+    </div>
+
+    {# Get existing card data if we're editing one. #}
+    {% if card %}
+        <script type="application/javascript">
+            const cardId = {{ card.pk }};
+            const setId = {{ card.set.pk }};
+            const setSymbolCode = "{{ card.set.set_symbol }}";
+            const SAVE_URL = "{% url 'api-update-card' card.pk %}";
+        </script>
+        {% if face_to_edit %}
+            {{ face_to_edit|json_script:"card-data" }}
+        {% endif %}
+    {% elif set %}
+        <script type="application/javascript">
+            const cardId = null;
+            const setId = {{ set.pk }};
+            const setSymbolCode = "{{ set.set_symbol }}";
+            const SAVE_URL = "{% url 'api-create-card' %}";
+        </script>
+    {% endif %}
+
+    <script src="{% static 'creator/js/creator.js' %}"></script>
+{% endblock %}

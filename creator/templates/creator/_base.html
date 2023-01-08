@@ -1,0 +1,30 @@
+{% load static %}
+{% load bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}CardConjurer{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'cardconjurer_static/core/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'creator/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'creator/css/symbols.css' %}">
+
+    {# JQuery and Bootstrap #}
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
+    {# Let child templates disable Bootstrap if needed (editor page needs this). #}
+    {% block bootstrap %}
+        {% bootstrap_css %}
+        {% bootstrap_javascript %}
+    {% endblock %}
+
+    {# Extra head content, if any. #}
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {# Body content. #}
+    {% block body %}{% endblock %}
+</body>
+</html>

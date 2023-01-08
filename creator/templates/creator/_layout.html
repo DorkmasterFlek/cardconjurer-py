@@ -1,0 +1,28 @@
+{% extends "creator/_base.html" %}
+{% load bootstrap5 %}
+
+{% block body %}
+    <div class="container my-2">
+        <nav class="container-xxl navbar navbar-expand-lg bd-navbar bg-light">
+            <ul class="navbar-nav w-100">
+                <li class="nav-item">
+                    <a class="btn" href="{% url 'list-sets' %}">
+                        <h1>CardConjurer</h1>
+                    </a>
+                </li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item w-100 d-flex justify-content-end">
+                        <p class="my-auto mx-2">Logged in as {{ user.username }}</p>
+                        <a class="btn btn-primary my-auto mx-2" role="button" href="{% url 'account_logout' %}">Logout</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    <div class="container my-2">
+        {% bootstrap_messages %}
+    </div>
+    <div class="container my-2">
+        {% block content %}{% endblock %}
+    </div>
+{% endblock %}

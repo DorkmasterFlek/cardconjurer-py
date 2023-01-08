@@ -1,0 +1,22 @@
+{% extends "account/base.html" %}
+{% load socialaccount %}
+
+{% block content %}
+    {% get_providers as socialaccount_providers %}
+
+    {% for provider in socialaccount_providers %}
+        {% if provider.id == "openid" %}
+            {% for brand in provider.get_brands %}
+                <p>
+                    <a title="{{brand.name}}"
+                       class="socialaccount_provider {{provider.id}} {{brand.id}} btn btn-primary"
+                       href="{% provider_login_url provider.id openid=brand.openid_url process=process %}">Log in with {{brand.name}}</a>
+                </p>
+            {% endfor %}
+        {% endif %}
+        <p>
+            <a title="{{provider.name}}" class="socialaccount_provider {{provider.id}} btn btn-primary"
+               href="{% provider_login_url provider.id process=process scope=scope auth_params=auth_params %}">Log in with {{provider.name}}</a>
+        </p>
+    {% endfor %}
+{% endblock %}

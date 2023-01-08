@@ -1,0 +1,34 @@
+{% extends "creator/_layout.html" %}
+
+{% block content %}
+    <div class="card my-2">
+        <div class="card-body">
+            <h1 class="card-title">{{ set.name }} <span class="badge bg-secondary">{{ set.code }}</span></h1>
+            <p>
+                <a class="btn btn-primary" href="{% url 'create-card' set.pk %}">Create a New Card</a>
+                <a class="btn btn-secondary" href="{% url 'list-sets' %}">Back to Set List</a>
+            </p>
+            <p>Create a new card or click on a card to edit it.</p>
+            <div class="row">
+            {% for card in cards %}
+                {# Start a new row every 4 cards. #}
+                {% if forloop.counter0 > 0 and forloop.counter0|divisibleby:4 %}
+                    </div>
+                    <div class="row">
+                {% endif %}
+
+                {# Show the card. #}
+                <div class="col-xl-3 my-2">
+                    <a href="{% url 'view-card' card.pk %}">
+                        {% if card.front_image %}
+                            <img class="img-fluid" src="{{ card.front_image.url }}" alt="{{ card.name }}">
+                        {% else %}
+                            <p>{{ card.name }}</p>
+                        {% endif %}
+                    </a>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "creator/_layout.html" %}
+{% load symbols %}
+
+{% block content %}
+    <div class="card my-2">
+        <div class="card-body">
+            <p><a class="btn btn-secondary" href="{% url 'view-set' card.set.pk %}">Back to Set</a></p>
+            <div class="row my-2">
+                <div class="col-xl-4">
+                    {% if card.front_image %}
+                        <img class="img-fluid" src="{{ card.front_image.url }}" alt="Front Face">
+                    {% else %}
+                        <p>{{ card.name|removesymbols }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-xl-8">
+                    <div class="card-header">
+                        <span class="card-name">{{ card.name|removesymbols }}</span>
+                        <span class="mana-cost">{{ card.cost|replacesymbols }}</span>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            {{ card.types|join:" "|removesymbols }}{% if card.subtypes %}
+                            &#8212;
+                            {{ card.subtypes|join:" "|removesymbols }}{% endif %}
+                        </li>
+                        <li class="list-group-item">
+                            {% if card.rules %}
+                                {{ card.rules|replacesymbols|linebreaks }}
+                            {% endif %}
+                            {% if card.flavor %}
+                                <em>{{ card.flavor|replacesymbols|linebreaks }}</em>
+                            {% endif %}
+                        </li>
+                        {% if card.pt %}
+                            <li class="list-group-item">{{ card.pt|removesymbols }}</li>
+                        {% endif %}
+                    </ul>
+                    <div class="card-footer">
+                        <a class="btn btn-primary" href="{% url 'edit-card-front' card.pk %}">Edit Front Face</a>
+                    </div>
+                </div>
+            </div>
+
+            {# Back face, if card is double-sided. #}
+            {% if card.is_double_faced %}
+                <div class="row my-2">
+                    <div class="col-xl-4">
+                        {% if card.back_image %}
+                            <img class="img-fluid" src="{{ card.back_image.url }}" alt="Back Face">
+                        {% else %}
+                            <p>{{ card.name_back|removesymbols }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-xl-8">
+                        <div class="card-header">
+                            <span class="card-name">{{ card.name_back|removesymbols }}</span>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                {{ card.types_back|join:" "|removesymbols }}{% if card.subtypes_back %}
+                                &#8212;
+                                {{ card.subtypes_back|join:" "|removesymbols }}{% endif %}
+                            </li>
+                            <li class="list-group-item">
+                                {% if card.rules_back %}
+                                    {{ card.rules_back|replacesymbols|linebreaks }}
+                                {% endif %}
+                                {% if card.flavor_back %}
+                                    <em>{{ card.flavor_back|replacesymbols|linebreaks }}</em>
+                                {% endif %}
+                            </li>
+                            {% if card.pt_back %}
+                                <li class="list-group-item">{{ card.pt_back |removesymbols}}</li>
+                            {% endif %}
+                        </ul>
+                        <div class="card-footer">
+                            <a class="btn btn-primary" href="{% url 'edit-card-back' card.pk %}">Edit Back Face</a>
+                            <button class="btn btn-danger" id="remove-back-btn">Remove Back Face</button>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p class="my-2">
+                    <a class="btn btn-primary" href="{% url 'edit-card-back' card.pk %}">Add Back Face</a>
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script type="application/javascript">
+        $(() => {
+            $("#remove-back-btn").click(() => {
+                // TODO: Do AJAX call to remove back face.
+            });
+        });
+    </script>
+{% endblock %}

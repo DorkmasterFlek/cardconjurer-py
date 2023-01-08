@@ -1,0 +1,15 @@
+{% extends "creator/_layout.html" %}
+
+{% block content %}
+    <form method="post" id="form">
+        {% csrf_token %}
+    </form>
+
+    <script type="application/javascript">
+        // Submit the form on load automatically.
+        $(() => {
+            $("#form").submit();
+        });
+    </script>
+{% endblock %}
+

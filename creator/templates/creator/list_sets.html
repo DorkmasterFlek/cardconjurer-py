@@ -1,0 +1,15 @@
+{% extends "creator/_layout.html" %}
+
+{% block content %}
+    {% for set in sets %}
+        <div class="card my-2">
+            <div class="card-body">
+                <h1 class="card-title">{{ set.name }} <span class="badge bg-secondary">{{ set.code }}</span></h1>
+                <p class="card-text">{{ set.cards.count }} card{{ set.cards.count|pluralize }}</p>
+                <p class="card-text">
+                    <a class="btn btn-secondary" href="{% url 'view-set' set.pk %}">View Set</a>
+                </p>
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}

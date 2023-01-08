@@ -1,0 +1,88 @@
+/* Base card symbol styles from Scryfall.  Actual symbols are in symbols.css generated from Scryfall API. */
+
+.card-symbol {
+    display: inline-block;
+    margin: 1px 1px -1px 1px;
+    -webkit-border-radius: 500px;
+    border-radius: 500px;
+    -webkit-box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.85);
+    box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.85);
+    text-indent: -999em;
+    overflow: hidden;
+    width: 15px;
+    height: 15px;
+    -webkit-background-size: 100% 100%;
+    background-size: 100% 100%;
+    background-position: top left;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+    cursor: help;
+}
+
+.card-symbol + .card-symbol {
+    margin-left: 2px;
+}
+
+.card-symbol-100 {
+    height: 15px !important;
+    width: 28px !important;
+}
+
+.card-symbol-1000000 {
+    height: 15px !important;
+    width: 76px !important;
+}
+
+.card-symbol-HR, .card-symbol-HW {
+    height: 15px;
+    width: 8px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+
+.card-symbol-P {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    width: 15px;
+    height: 15px;
+}
+
+.card-symbol-TK {
+    margin-left: -1px !important;
+    margin-right: 0 !important;
+    margin-bottom: -2px !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    width: 15px;
+    height: 15px;
+}
+
+.card-symbol-E {
+    margin: 0 2px -2px 0;
+    height: 14px;
+    width: 14px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+
+.card-symbol-CHAOS {
+    width: 18px;
+    height: 14px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+
+.card-symbol-PW {
+    width: 8px;
+    height: 15px;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+}
