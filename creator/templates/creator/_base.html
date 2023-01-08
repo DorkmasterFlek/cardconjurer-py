@@ -5,6 +5,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="CardConjurer"/>
+    {# Meta tags, if the page has any. #}
+    {% block meta %}{% endblock %}
+
     <title>{% block title %}CardConjurer{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{% static 'cardconjurer_static/core/favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'creator/css/style.css' %}">

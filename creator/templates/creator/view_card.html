@@ -1,6 +1,15 @@
 {% extends "creator/_layout.html" %}
 {% load symbols %}
 
+{% block meta %}
+    {# Open Graph meta tags for unfurling. #}
+    <meta property="og:title" content="{{ card.name }}"/>
+    <meta property="og:url" content="{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.get_host }}{% url 'view-card' card.pk %}"/>
+    {% if card.front_image %}
+        <meta property="og:image" content="{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.get_host }}{{ card.front_image.url }}"/>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
     <div class="card my-2">
         <div class="card-body">
