@@ -158,7 +158,7 @@ class Card(models.Model):
 
         # If rules text is only italics, it's all flavor text.
         if re.match(r'^{i}[^{}]+{/i}$', rules, flags=re.IGNORECASE):
-            line = re.split(r'{i}', rules, 1, flags=re.IGNORECASE)
+            line = ['', rules]
         # Otherwise, split on flavor separator or dash plus italics opener.
         else:
             line = re.split(r'{flavor}|{-}\s*{i}', rules, 1, flags=re.IGNORECASE)
@@ -205,6 +205,13 @@ class Card(models.Model):
 
             # Add extra line break between each line of rules text for paragraph breaks.
             line = re.sub(r'[\r\n]+', '\n\n', line)
+
+            # But make sure there's only one line break between bullet points (spell modes).
+            line = re.sub(r'\s+({.}|•)', r'\n\1', line, flags=re.IGNORECASE)
+
+        # If we're getting flavor text (index 1), remove all italics tags (it will be italic on the display).
+        elif index == 1:
+            line = re.sub(r'{/?i}', '', line, flags=re.IGNORECASE)
 
         return line.strip()
 
