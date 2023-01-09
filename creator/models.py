@@ -1,3 +1,4 @@
+import math
 import mimetypes
 import os
 import re
@@ -26,6 +27,59 @@ _front_art_path = CardImagePathRename("front_art")
 _front_image_path = CardImagePathRename("front_image")
 _back_art_path = CardImagePathRename("back_art")
 _back_image_path = CardImagePathRename("back_image")
+
+
+def int_to_roman(num):
+    """Helper function to convert integer to a Roman numeral string.
+
+    Args:
+        num (int): Integer to convert.
+
+    Returns:
+        str: Roman numeral representation.
+    """
+    romans_dict = {
+        1: "I",
+        5: "V",
+        10: "X",
+        50: "L",
+        100: "C",
+        500: "D",
+        1000: "M",
+        5000: "G",
+        10000: "H",
+    }
+
+    div = 1
+    while num >= div:
+        div *= 10
+
+    div /= 10
+
+    res = ""
+
+    while num:
+
+        # main significant digit extracted
+        # into lastNum
+        last_num = int(num / div)
+
+        if last_num <= 3:
+            res += (romans_dict[div] * last_num)
+        elif last_num == 4:
+            res += (romans_dict[div] +
+                    romans_dict[div * 5])
+        elif 5 <= last_num <= 8:
+            res += (romans_dict[div * 5] +
+                    (romans_dict[div] * (last_num - 5)))
+        elif last_num == 9:
+            res += (romans_dict[div] +
+                    romans_dict[div * 10])
+
+        num = math.floor(num % div)
+        div /= 10
+
+    return res
 
 
 # *** Models
@@ -75,7 +129,15 @@ class Card(models.Model):
         if data is None:
             data = self.front
 
-        return data.get('text', {}).get(key, {}).get('text', '')
+        s = data.get('text', {}).get(key, {}).get('text', '')
+
+        # Check if the piece of text has an unclosed italics tag (some reminder text or flavor text does).
+        s = re.sub(r'{i}(?!.*{/i})(.*)', r'{i}\1{/i}', s, flags=re.IGNORECASE)
+
+        # Replace divider tag with line break.
+        s = re.sub(r'{divider}', '\n', s, flags=re.IGNORECASE)
+
+        return s
 
     def _get_type_line_data(self, index, data=None):
         """Helper function to get type line data (main or subtypes) and split on dash."""
@@ -89,19 +151,62 @@ class Card(models.Model):
     def _get_rules_data(self, index, data=None):
         """Helper function to get rules data (rules or flavor text) and split on flavor separator."""
 
+        if data is None:
+            data = self.front
+
         rules = self._get_text('rules', data)
 
         # If rules text is only italics, it's all flavor text.
-        if re.match(r'^{i}[^{}]+({/i})?$', rules, flags=re.IGNORECASE):
+        if re.match(r'^{i}[^{}]+{/i}$', rules, flags=re.IGNORECASE):
             line = re.split(r'{i}', rules, 1, flags=re.IGNORECASE)
         # Otherwise, split on flavor separator or dash plus italics opener.
         else:
             line = re.split(r'{flavor}|{-}\s*{i}', rules, 1, flags=re.IGNORECASE)
 
-        # TODO: Get additional rules text from other text objects (e.g. saga/planeswalker abilities).
-        line[0] = re.sub(r'~|{cardname}', self.name, line[0], flags=re.IGNORECASE)
+        line = line[index] if len(line) > index else ''
 
-        return line[index] if len(line) > index else ''
+        # If we're getting rules text (index 0), get additional rules text from other text objects for card types.
+        if index == 0:
+            # Planeswalker abilities.  List of ability costs has corresponding text element "ability<x>".
+            if data.get('planeswalker') and isinstance(data['planeswalker'].get('abilities'), (list, tuple)):
+                for i, cost in enumerate(data['planeswalker']['abilities']):
+                    if cost.strip():
+                        line += f'{cost.strip()}: ' + self._get_text(f'ability{i}', data) + '\n'
+
+            # Saga chapters.  List of ability costs has corresponding text element "ability<x>".
+            if data.get('saga') and isinstance(data['saga'].get('abilities'), (list, tuple)):
+                line += self._get_text('reminder', data) + '\n'
+                chapter = 0
+
+                for i, cost in enumerate(data['saga']['abilities']):
+                    if cost.strip().isdigit():
+                        cost = int(cost)
+                        line_chapters = []
+
+                        while cost > 0:
+                            chapter += 1
+                            line_chapters.append(int_to_roman(chapter))
+                            cost -= 1
+
+                        if line_chapters:
+                            line += f'{", ".join(line_chapters)} {{-}} ' + self._get_text(f'ability{i}', data) + '\n'
+
+            # Class abilities.
+            if data.get('class') and isinstance(data['class'].get('count'), int) and data['class']['count'] > 0:
+                line += self._get_text('level0c') + '\n'
+                for i in range(1, data['class']['count'] + 1):
+                    cost = self._get_text(f'level{i}a', data).strip(':')
+                    name = self._get_text(f'level{i}b', data)
+                    line += f'{cost}: {name}' + '\n'
+                    line += self._get_text(f'level{i}c') + '\n'
+
+            # Once we have everything, replace tilde or {cardname} with the card name.
+            line = re.sub(r'~|{cardname}', self.name, line, flags=re.IGNORECASE)
+
+            # Add extra line break between each line of rules text for paragraph breaks.
+            line = re.sub(r'[\r\n]+', '\n\n', line)
+
+        return line.strip()
 
     @transaction.atomic
     def save(self, **kwargs):
@@ -254,6 +359,22 @@ class Card(models.Model):
         """
         Returns:
             str: Power/toughness for back face.
+        """
+        return self._get_text('pt', self.back)
+
+    @property
+    def loyalty(self):
+        """
+        Returns:
+            str: Starting loyalty for front face.
+        """
+        return self._get_text('loyalty')
+
+    @property
+    def loyalty_back(self):
+        """
+        Returns:
+            str: Starting loyalty for back face.
         """
         return self._get_text('pt', self.back)
 

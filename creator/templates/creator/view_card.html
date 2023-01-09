@@ -42,7 +42,10 @@
                             {% endif %}
                         </li>
                         {% if card.pt %}
-                            <li class="list-group-item">{{ card.pt|removesymbols }}</li>
+                            <li class="list-group-item"><strong>{{ card.pt|removesymbols }}</strong></li>
+                        {% endif %}
+                        {% if card.loyalty %}
+                            <li class="list-group-item"><strong>Loyalty: {{ card.loyalty|removesymbols }}</strong></li>
                         {% endif %}
                     </ul>
                     <div class="card-footer">
@@ -80,7 +83,10 @@
                                 {% endif %}
                             </li>
                             {% if card.pt_back %}
-                                <li class="list-group-item">{{ card.pt_back |removesymbols}}</li>
+                                <li class="list-group-item"><strong>{{ card.pt_back |removesymbols}}</strong></li>
+                            {% endif %}
+                            {% if card.loyalty_back %}
+                                <li class="list-group-item"><strong>Loyalty: {{ card.loyalty_back|removesymbols }}</strong></li>
                             {% endif %}
                         </ul>
                         <div class="card-footer">
