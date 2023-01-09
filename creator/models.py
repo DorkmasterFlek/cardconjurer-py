@@ -207,7 +207,7 @@ class Card(models.Model):
             line = re.sub(r'[\r\n]+', '\n\n', line)
 
             # But make sure there's only one line break between bullet points (spell modes).
-            line = re.sub(r'\s+({.}|•)', r'\n\1', line, flags=re.IGNORECASE)
+            line = re.sub(r'\s+({\.}|•)', r'\n\1', line, flags=re.IGNORECASE)
 
         # If we're getting flavor text (index 1), remove all italics tags (it will be italic on the display).
         elif index == 1:
