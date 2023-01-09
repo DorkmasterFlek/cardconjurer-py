@@ -1,6 +1,7 @@
 import mimetypes
 import urllib.request
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.http import Http404
@@ -114,6 +115,12 @@ class CardAPIMixIn(LoginRequiredMixin):
 
 
 class CreateCardAPIView(CardAPIMixIn, CreateAPIView):
+    def perform_create(self, serializer):
+        """Add Django message after DB update."""
+
+        super().perform_create(serializer)
+        messages.success(self.request, "Card added successfully.")
+
     def post(self, request, *args, **kwargs):
         self.pre_process_data(request)
         response = super().post(request, *args, **kwargs)
@@ -123,6 +130,12 @@ class CreateCardAPIView(CardAPIMixIn, CreateAPIView):
 
 class UpdateCardAPIView(CardAPIMixIn, UpdateAPIView):
     queryset = models.Card.objects.all()
+
+    def perform_update(self, serializer):
+        """Add Django message after DB update."""
+
+        super().perform_update(serializer)
+        messages.success(self.request, "Card updated successfully.")
 
     def post(self, request, *args, **kwargs):
         """Allow using POST to update cards and default to partial update (PATCH method)."""
