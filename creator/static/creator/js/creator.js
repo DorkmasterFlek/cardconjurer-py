@@ -2,6 +2,14 @@
 
 let ScryfallTimer = null;
 
+const RARITIES = [
+    ['', 'Select Rarity'],
+    ['C', 'Common'],
+    ['U', 'Uncommon'],
+    ['R', 'Rare'],
+    ['M', 'Mythic Rare'],
+];
+
 async function checkScryfall() {
     // Check if the selected text editor is mana cost and try to parse it from Scryfall.
     let selectedText = card.text[Object.keys(card.text)[selectedTextIndex]];
@@ -49,6 +57,19 @@ $(() => {
 
     // Hook for editing mana cost text to parse with Scryfall API.
     $("#text-editor").on("input", restartScryfallTimer);
+
+    // Replace set symbol rarity with a dropdown instead.
+    // When we change the set symbol rarity, copy this to the bottom info rarity field for consistency by default.
+    // Don't go the other way, because the bottom info code could be e.g. "P" for promo variant.
+    let dropdown = $("<select>").attr("id", "set-symbol-rarity").addClass("input");
+    for (let rarity of RARITIES) {
+        $("<option>").attr("value", rarity[0]).text(rarity[1]).appendTo(dropdown);
+    }
+    dropdown.on("change", fetchSetSymbol).on("input", function() {
+        $("#info-rarity").val($(this).val().toUpperCase());
+        bottomInfoEdited();
+    });
+    $("#set-symbol-rarity").replaceWith(dropdown);
 
     // Remove other import/download tab options.
     let sections = $("#creator-menu-import").children();
