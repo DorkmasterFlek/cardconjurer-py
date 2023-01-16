@@ -9,16 +9,10 @@
                 <a class="btn btn-secondary" href="{% url 'list-sets' %}">Back to Set List</a>
             </p>
             <p>Create a new card or click on a card to edit it.</p>
-            <div class="row">
+            <div class="row row-cols-1 row-cols-lg-3 row-cols-xl-4">
             {% for card in cards %}
-                {# Start a new row every 4 cards. #}
-                {% if forloop.counter0 > 0 and forloop.counter0|divisibleby:4 %}
-                    </div>
-                    <div class="row">
-                {% endif %}
-
                 {# Show the card. #}
-                <div class="col-xl-3 my-2">
+                <div class="col my-2">
                     <a href="{% url 'view-card' card.pk %}">
                         {% if card.front_image %}
                             <img class="img-fluid" src="{{ card.front_image.url }}" alt="{{ card.name }}">
