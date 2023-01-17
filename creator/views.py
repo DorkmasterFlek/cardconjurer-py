@@ -41,7 +41,7 @@ class DisplaySetView(LoginRequiredMixin, ListView):
                 % {"verbose_name": models.Set._meta.verbose_name}
             )
 
-        return models.Card.objects.filter(set=self.set)
+        return sorted(models.Card.objects.filter(set=self.set).all(), key=lambda card: card.set_number_key)
 
 
 class CreateCardView(LoginRequiredMixin, DetailView):

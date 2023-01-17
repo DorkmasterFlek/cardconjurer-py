@@ -1,3 +1,4 @@
+import enum
 import math
 import mimetypes
 import os
@@ -82,6 +83,16 @@ def int_to_roman(num):
     return res
 
 
+class Colour(enum.IntEnum):
+    WHITE = 1
+    BLUE = 2
+    BLACK = 3
+    RED = 4
+    GREEN = 5
+    MULTICOLOR = 6
+    COLORLESS = 7
+
+
 # *** Models
 
 class Set(models.Model):
@@ -115,12 +126,14 @@ class Card(models.Model):
 
     # *** Internal helper functions.
 
-    def _get_text(self, key, data=None):
+    def _get_text(self, key, data=None, remove_symbols=False):
         """Helper function to get text value from card data JSON based on key name.
 
         Args:
             key (str): Key of text value to get.
             data (dict): JSON data object.  If not provided, front face data will be used.
+            remove_symbols (bool): If True, remove any curly brace symbols from the text.  This is useful for removing
+                                   formatting tags from certain fields that don't need any, e.g. name and types.
 
         Returns:
             str: That text value, if it exists.  Blank string otherwise.
@@ -136,6 +149,10 @@ class Card(models.Model):
 
         # Replace divider tag with line break.
         s = re.sub(r'{divider}', '\n', s, flags=re.IGNORECASE)
+
+        # Remove symbols.
+        if remove_symbols:
+            s = re.sub(r'\{([^}]+)}', '', s, flags=re.IGNORECASE)
 
         return s
 
@@ -215,6 +232,28 @@ class Card(models.Model):
 
         return line.strip()
 
+    def _has_type(self, value):
+        """Helper function to check if a card has a given type on its type line (not subtypes).
+
+        Args:
+            value (str): Type to check.
+
+        Returns:
+            bool: True if card has this type, False otherwise.
+        """
+        return value.lower() in [s.lower() for s in self.types]
+
+    def _has_subtype(self, value):
+        """Helper function to check if a card has a given subtype on its type line.
+
+        Args:
+            value (str): Subtype to check.
+
+        Returns:
+            bool: True if card has this subtype, False otherwise.
+        """
+        return value.lower() in [s.lower() for s in self.subtypes]
+
     @transaction.atomic
     def save(self, **kwargs):
         """Perform a two stage save process for new cards with image fields null at first so we can use the primary key
@@ -271,7 +310,7 @@ class Card(models.Model):
         Returns:
             str: Card name (title) from front face.
         """
-        return self._get_text('title') or 'Unknown'
+        return self._get_text('title', remove_symbols=True) or 'Unknown'
 
     @property
     def name_back(self):
@@ -279,7 +318,7 @@ class Card(models.Model):
         Returns:
             str: Card name (title) from back face.
         """
-        return self._get_text('title', self.back)
+        return self._get_text('title', self.back, remove_symbols=True)
 
     @property
     def cost(self):
@@ -401,7 +440,7 @@ class Card(models.Model):
         Returns:
             bool: True if creature.
         """
-        return "creature" in [s.lower() for s in self.types]
+        return self._has_type("creature")
 
     @property
     def is_legendary(self):
@@ -409,7 +448,23 @@ class Card(models.Model):
         Returns:
             bool: True if legendary.
         """
-        return "legendary" in [s.lower() for s in self.types]
+        return self._has_type("legendary")
+
+    @property
+    def is_artifact(self):
+        """
+        Returns:
+            bool: True if artifact.
+        """
+        return self._has_type("artifact")
+
+    @property
+    def is_land(self):
+        """
+        Returns:
+            bool: True if land.
+        """
+        return self._has_type("land")
 
     @property
     def is_token(self):
@@ -417,4 +472,57 @@ class Card(models.Model):
         Returns:
             bool: True if card is a token.
         """
-        return "token" in [s.lower() for s in self.types]
+        return self._has_type("token")
+
+    @property
+    def colours(self):
+        """
+        Returns:
+            list[Colour]: List of colours this card has in its cost.
+        """
+
+        colours = []
+        cost = self.cost.upper()
+
+        for code, colour in (
+                ('W', Colour.WHITE),
+                ('U', Colour.BLUE),
+                ('B', Colour.BLACK),
+                ('R', Colour.RED),
+                ('G', Colour.GREEN),
+        ):
+            if code in cost:
+                colours.append(colour)
+
+        return colours
+
+    @property
+    def set_number_key(self):
+        """
+        Returns:
+            tuple: Tuple that can be used as a sorting key for set number order logic.
+        """
+
+        # Put tokens at the very end.
+        token_key = 1 if not self.is_token else 2
+
+        # Colours go in WUBRG order, then multicolour, then colourless.
+        colours = self.colours
+        if len(colours) == 1:
+            colour_key = colours[0]
+        elif len(colours) > 1:
+            colour_key = Colour.MULTICOLOR
+        else:
+            colour_key = Colour.COLORLESS
+
+        # Non-lands (e.g. artifacts) go first, then lands.
+        type_key = 1 if not self.is_land else 2
+
+        # Final key is name alphabetically.  Remove "a", "an", "and" the from the start.
+        name_key = self.name.lower()
+        for prefix in ('a ', 'an ', 'the '):
+            if name_key.startswith(prefix):
+                name_key = name_key[len(prefix):]
+
+        # Return final tuple.
+        return token_key, colour_key, type_key, name_key
