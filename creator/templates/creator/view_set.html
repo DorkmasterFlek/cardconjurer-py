@@ -1,4 +1,5 @@
 {% extends "creator/_layout.html" %}
+{% load symbols %}
 
 {% block content %}
     <div class="card my-2">
@@ -17,7 +18,8 @@
                         {% if card.front_image %}
                             <img class="img-fluid" src="{{ card.front_image.url }}" alt="{{ card.name }}">
                         {% else %}
-                            <p>{{ card.name }}</p>
+                            <span class="card-name">{{ card.name|removesymbols }}</span>
+                            <span class="mana-cost">{{ card.cost|replacesymbols }}</span>
                         {% endif %}
                     </a>
                 </div>

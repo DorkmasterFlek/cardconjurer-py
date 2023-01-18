@@ -84,6 +84,7 @@ def int_to_roman(num):
 
 
 class Colour(enum.IntEnum):
+    """Ranking enumeration of card colours to sort in WUBRG order."""
     WHITE = 1
     BLUE = 2
     BLACK = 3
@@ -144,15 +145,18 @@ class Card(models.Model):
 
         s = data.get('text', {}).get(key, {}).get('text', '')
 
+        # Remove symbols?
+        if remove_symbols:
+            s = re.sub(r'\{([^}]+)}', '', s, flags=re.IGNORECASE)
+
+        # Remove leading/trailing whitespace.
+        s = s.strip()
+
         # Check if the piece of text has an unclosed italics tag (some reminder text or flavor text does).
         s = re.sub(r'{i}(?!.*{/i})(.*)', r'{i}\1{/i}', s, flags=re.IGNORECASE)
 
         # Replace divider tag with line break.
         s = re.sub(r'{divider}', '\n', s, flags=re.IGNORECASE)
-
-        # Remove symbols.
-        if remove_symbols:
-            s = re.sub(r'\{([^}]+)}', '', s, flags=re.IGNORECASE)
 
         return s
 
