@@ -191,8 +191,13 @@ class Card(models.Model):
             # Planeswalker abilities.  List of ability costs has corresponding text element "ability<x>".
             if data.get('planeswalker') and isinstance(data['planeswalker'].get('abilities'), (list, tuple)):
                 for i, cost in enumerate(data['planeswalker']['abilities']):
-                    if cost.strip():
-                        line += f'{cost.strip()}: ' + self._get_text(f'ability{i}', data) + '\n'
+                    cost = cost.strip()
+                    ability = self._get_text(f'ability{i}', data)
+                    if ability:
+                        # Cost is optional.  Might be static/triggered ability.
+                        if cost:
+                            line += f'{cost}: '
+                        line += ability + '\n'
 
             # Saga chapters.  List of ability costs has corresponding text element "ability<x>".
             if data.get('saga') and isinstance(data['saga'].get('abilities'), (list, tuple)):
