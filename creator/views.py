@@ -59,6 +59,7 @@ class EditCardFrontView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['face_to_edit'] = self.object.back if self.editing_back else self.object.front
+        context['editing_back'] = self.editing_back
         return context
 
 
@@ -97,7 +98,7 @@ class CardAPIMixIn(LoginRequiredMixin):
             data[key] = ContentFile(response.file.read(), name=f'{key}{ext}')
 
     def pre_process_data(self, request):
-        """TODO: Pre-process the incoming POST data to get art image and uploaded image and create file objects."""
+        """Pre-process the incoming POST data to get art image and uploaded image and create file objects."""
 
         new_data = request.data.copy()
         self._get_image_content(new_data, 'front_art')
@@ -152,3 +153,17 @@ class UpdateCardAPIView(CardAPIMixIn, UpdateAPIView):
         response = super().patch(request, *args, **kwargs)
         self.post_process_data(response)
         return response
+
+
+class RemoveBackFaceAPIView(UpdateCardAPIView):
+    def pre_process_data(self, request):
+        """Pre-process the incoming POST data to remove any provided fields and clear back face data."""
+
+        new_data = request.data.copy()
+        new_data.clear()
+        new_data['back'] = None
+        new_data['back_art'] = None
+        new_data['back_image'] = None
+
+        # Hack to replace request data with new data since it's not directly modifiable.
+        request._full_data = new_data

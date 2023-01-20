@@ -106,7 +106,23 @@
     <script type="application/javascript">
         $(() => {
             $("#remove-back-btn").click(() => {
-                // TODO: Do AJAX call to remove back face.
+                if (window.confirm("Are you sure you want to remove the back face from this card?")) {
+                    // Do AJAX call to remove back face.
+                    const settings = {
+                        data: JSON.stringify({}),
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        headers: {
+                            // CSRF token must be passed via headers for AJAX calls.
+                            "X-CSRFToken": Cookies.get('csrftoken')
+                        },
+                        url: "{% url 'api-remove-back-face' card.pk %}"
+                    };
+                    $.post(settings).done(() => {
+                        // Reload the page.
+                        location.reload();
+                    });
+                }
             });
         });
     </script>

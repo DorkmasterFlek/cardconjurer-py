@@ -14,6 +14,7 @@ urlpatterns = [
     # API views.
     path('api/create-card', views.CreateCardAPIView.as_view(), name='api-create-card'),
     path('api/update-card/<int:pk>', views.UpdateCardAPIView.as_view(), name='api-update-card'),
+    path('api/remove-back-face/<int:pk>', views.RemoveBackFaceAPIView.as_view(), name='api-remove-back-face'),
 
     # Handle absolute paths from the CardConjurer source by redirecting them to the static URLs.
     path('fonts/<path:path>', views.CardConjurerStaticRedirectView.as_view(base_dir='fonts')),
