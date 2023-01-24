@@ -140,7 +140,13 @@ $(() => {
     // We have to temporarily store this in the local storage because this is how CardConjurer works internally.
     let data = $("#card-data").text();
     if (data) {
-        localStorage.setItem("editData", data);
+        // If we have rules text, run it through the updated curly quotes function when we load.
+        data = JSON.parse(data);
+        if (data.text && data.text.rules && data.text.rules.text) {
+            data.text.rules.text = curlyQuotes(data.text.rules.text);
+        }
+
+        localStorage.setItem("editData", JSON.stringify(data));
         loadCard("editData").then(() => {
             // Sometimes font doesn't load right away and first text render fails.  This is a hack workaround...
             setTimeout(textEdited, 2000);
