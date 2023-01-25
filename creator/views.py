@@ -1,9 +1,11 @@
 import mimetypes
 import urllib.request
+from io import BytesIO
 
+from PIL import Image, ImageFile
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.files.base import ContentFile
+from django.core.files.base import File
 from django.http import Http404
 from django.templatetags.static import static
 from django.urls import reverse
@@ -88,23 +90,48 @@ class CardConjurerStaticRedirectView(RedirectView):
 class CardAPIMixIn(LoginRequiredMixin):
     serializer_class = serializers.CardSerializer
 
-    def _get_image_content(self, data, key):
-        """Helper function to get image content for the key from incoming data URL format in JSON request."""
+    def _get_image_content(self, data, key, resize=None):
+        """Helper function to get image content for the key from incoming data URL format in JSON request.
+        If resize is True, use Pillow to resize the image smaller (for final renders because they're GIANORMOUS).
+
+        Args:
+            data (dict): Form data dict.
+            key (str): Field key name.
+            resize (tuple[int]): Tuple of (width, height) to resize image, if needed.
+        """
 
         if data.get(key):
             response = urllib.request.urlopen(data[key])
             info = response.info()
             ext = mimetypes.guess_extension(info.get_content_type())
-            data[key] = ContentFile(response.file.read(), name=f'{key}{ext}')
+
+            # Resize image if necessary.
+            if resize:
+                parser = ImageFile.Parser()
+                parser.feed(response.read())
+                image = parser.close()
+
+                if image.width != resize[0] or image.height != resize[1]:
+                    image = image.resize(resize, Image.LANCZOS)
+
+                imgdata = BytesIO()
+                image.save(imgdata, format=ext.strip('.'))
+
+            # Otherwise use provided data.
+            else:
+                imgdata = BytesIO(response.read())
+
+            imgdata.seek(0)
+            data[key] = File(imgdata, name=f'{key}{ext}')
 
     def pre_process_data(self, request):
         """Pre-process the incoming POST data to get art image and uploaded image and create file objects."""
 
         new_data = request.data.copy()
         self._get_image_content(new_data, 'front_art')
-        self._get_image_content(new_data, 'front_image')
+        self._get_image_content(new_data, 'front_image', resize=models.Card.CARD_IMAGE_SIZE)
         self._get_image_content(new_data, 'back_art')
-        self._get_image_content(new_data, 'back_image')
+        self._get_image_content(new_data, 'back_image', resize=models.Card.CARD_IMAGE_SIZE)
 
         # Hack to replace request data with new data since it's not directly modifiable.
         request._full_data = new_data

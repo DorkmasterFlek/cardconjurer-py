@@ -111,6 +111,10 @@ class Set(models.Model):
 
 class Card(models.Model):
     """Model for individual card."""
+    # Final card image render size to resize images to (width, height).
+    # Card renders from the CardConjurer editor are HUGE (1500 x 2100) so make this something more reasonable.
+    CARD_IMAGE_SIZE = (500, 700)
+
     set = models.ForeignKey(Set, on_delete=models.CASCADE, related_name='cards')
     front = models.JSONField(verbose_name='Front Face Data')
     front_art = models.ImageField(blank=True, null=True, verbose_name='Front Face Art', upload_to=_front_art_path)
