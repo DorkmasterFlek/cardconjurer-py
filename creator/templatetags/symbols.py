@@ -19,7 +19,8 @@ def _symbol_replace(matchobj):
     elif code == ".":
         return "&#8226;"
     else:
-        return f"""<abbr class="card-symbol card-symbol-{code}" title="{code}">{matchobj.group(0)}</abbr>"""
+        # Remove slashes for hybrid mana symbols.
+        return f"""<abbr class="card-symbol card-symbol-{code.replace('/', '')}" title="{code}">{matchobj.group(0)}</abbr>"""
 
 
 def _reminder_text_replace(matchobj):
