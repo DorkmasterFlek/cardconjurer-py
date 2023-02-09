@@ -233,6 +233,9 @@ class Card(models.Model):
             # Once we have everything, replace tilde or {cardname} with the card name.
             line = re.sub(r'~|{cardname}', self.name, line, flags=re.IGNORECASE)
 
+            # Replace shortname tag.
+            line = re.sub(r'{shortname}', self.short_name, line, flags=re.IGNORECASE)
+
             # Add extra line break between each line of rules text for paragraph breaks.
             line = re.sub(r'[\r\n]+', '\n\n', line)
 
@@ -331,7 +334,23 @@ class Card(models.Model):
         Returns:
             str: Card name (title) from back face.
         """
-        return self._get_text('title', self.back, remove_symbols=True)
+        return self._get_text('title', self.back, remove_symbols=True) or 'Unknown'
+
+    @property
+    def short_name(self):
+        """
+        Returns:
+            str: Short name (title) from front face, for names that have an epithet.
+        """
+        return self.name.split(',', 1)[0]
+
+    @property
+    def short_name_back(self):
+        """
+        Returns:
+            str: Short name (title) from back face, for names that have an epithet.
+        """
+        return self.name_back.split(',', 1)[0]
 
     @property
     def cost(self):
