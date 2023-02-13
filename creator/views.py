@@ -1,5 +1,6 @@
 import mimetypes
 import urllib.request
+from dataclasses import dataclass
 from io import BytesIO
 
 from PIL import Image, ImageFile
@@ -44,6 +45,338 @@ class DisplaySetView(LoginRequiredMixin, ListView):
             )
 
         return sorted(models.Card.objects.filter(set=self.set).all(), key=lambda card: card.set_number_key)
+
+
+class SetStatsView(LoginRequiredMixin, DetailView):
+    model = models.Set
+    template_name = "creator/set_stats.html"
+    context_object_name = 'set'
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        charts = []
+
+        # ******** Get stats data.
+
+        @dataclass
+        class StatColour:
+            name: str
+            bgcolour: str
+            total: int = 0
+            commanders: int = 0
+
+            @property
+            def attr(self):
+                return self.name.lower()
+
+        statcolours = [
+            StatColour('White', '#ffffee'),
+            StatColour('Blue', '#2222ff'),
+            StatColour('Black', '#000000'),
+            StatColour('Red', '#ff2222'),
+            StatColour('Green', '#22ff22'),
+            StatColour('Gold', '#ddbb66'),
+            StatColour('Colourless', '#bbbbbb'),
+        ]
+
+        @dataclass
+        class StatByColour:
+            name: str
+            colour: str
+            white: int = 0
+            blue: int = 0
+            black: int = 0
+            red: int = 0
+            green: int = 0
+            gold: int = 0
+            colourless: int = 0
+
+            @property
+            def total(self) -> int:
+                return self.white + self.blue + self.black + self.red + self.green + self.gold + self.colourless
+
+        cardtypes = [
+            StatByColour('Artifact', '#bbbbbb'),
+            StatByColour('Creature', '#228822'),
+            StatByColour('Enchantment', '#aaddcc'),
+            StatByColour('Instant', '#555577'),
+            StatByColour('Land', '#886644'),
+            StatByColour('Planeswalker', '#9944bb'),
+            StatByColour('Sorcery', '#992222'),
+            StatByColour('Other', '#000000'),
+        ]
+
+        manavalues = [
+            StatByColour('0', '#0000ff'),
+            StatByColour('1', '#1100ee'),
+            StatByColour('2', '#2200dd'),
+            StatByColour('3', '#3300cc'),
+            StatByColour('4', '#4400bb'),
+            StatByColour('5', '#5500aa'),
+            StatByColour('6+', '#660099'),
+        ]
+
+        for card in self.object.cards.all():
+            # Counts by colour.
+            statcolour = None
+            if card.is_multicolour:
+                statcolour = statcolours[5]
+            elif card.is_colourless:
+                statcolour = statcolours[6]
+            else:
+                match card.first_colour:
+                    case models.Colour.WHITE:
+                        statcolour = statcolours[0]
+                    case models.Colour.BLUE:
+                        statcolour = statcolours[1]
+                    case models.Colour.BLACK:
+                        statcolour = statcolours[2]
+                    case models.Colour.RED:
+                        statcolour = statcolours[3]
+                    case models.Colour.GREEN:
+                        statcolour = statcolours[4]
+
+            statcolour.total += 1
+            if card.can_be_commander:
+                statcolour.commanders += 1
+
+            # Counts by card type.
+            found_type = False
+            for cardtype in cardtypes:
+                if card.has_type(cardtype.name) or (cardtype.name == 'Other' and not found_type):
+                    found_type = True
+                    setattr(cardtype, statcolour.attr, getattr(cardtype, statcolour.attr) + 1)
+
+            # Counts by mana value (non-land cards only).
+            if not card.is_land:
+                found_mana_value = False
+                for manavalue in manavalues:
+                    if str(card.mana_value) == manavalue.name or (manavalue.name == '6+' and not found_mana_value):
+                        found_mana_value = True
+                        setattr(manavalue, statcolour.attr, getattr(manavalue, statcolour.attr) + 1)
+
+        # Filter out types that didn't have any cards to save space.
+        cardtypes = [cardtype for cardtype in cardtypes if cardtype.total > 0]
+
+        # ******** Build charts.
+
+        # Cards by type.
+        charts.append({
+            'id': 'cards_by_type',
+            'type': 'bar',
+            'data': {
+                'datasets': [{
+                    'data': [cardtype.total for cardtype in cardtypes],
+                    'backgroundColor': [cardtype.colour for cardtype in cardtypes],
+                    'borderColor': 'rgba(0, 0, 0, 0.5)',
+                    'borderWidth': 1,
+                    'label': 'Count',
+                }],
+                'labels': [cardtype.name for cardtype in cardtypes],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Cards By Type',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                    'subtitle': {
+                        'display': True,
+                        'position': 'bottom',
+                        'font': {'style': 'italic'},
+                        'text': 'Cards of multiple types count for both types',
+                        'padding': {
+                            'top': 10,
+                        },
+                    },
+                },
+            },
+        })
+
+        # Colours By Type (excluding lands)
+        types_to_use = [cardtype for cardtype in cardtypes if cardtype.name != 'Land']
+        datasets = []
+        for colour in statcolours:
+            datasets.append({
+                'data': [getattr(cardtype, colour.attr) for cardtype in types_to_use],
+                'backgroundColor': [colour.bgcolour] * len(types_to_use),
+                'barPercentage': 1.0,
+                'borderColor': 'rgba(0, 0, 0, 0.5)',
+                'borderWidth': 1,
+                'label': colour.name,
+            })
+
+        charts.append({
+            'id': 'colours_by_type',
+            'type': 'bar',
+            'data': {
+                'datasets': datasets,
+                'labels': [cardtype.name for cardtype in types_to_use],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Colours By Type',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                    'subtitle': {
+                        'display': True,
+                        'position': 'bottom',
+                        'font': {'style': 'italic'},
+                        'text': 'Cards of multiple types count for both types',
+                        'padding': {
+                            'top': 10,
+                        },
+                    },
+                },
+            },
+        })
+
+        # Cards by mana value.
+        charts.append({
+            'id': 'cards_by_mana_value',
+            'type': 'bar',
+            'data': {
+                'datasets': [{
+                    'data': [manavalue.total for manavalue in manavalues],
+                    'backgroundColor': [manavalue.colour for manavalue in manavalues],
+                    'borderColor': 'rgba(0, 0, 0, 0.5)',
+                    'borderWidth': 1,
+                    'label': 'Count',
+                }],
+                'labels': [manavalue.name for manavalue in manavalues],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Cards By Mana Value',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                },
+            },
+        })
+
+        # Colours by mana value.
+        datasets = []
+        for colour in statcolours:
+            datasets.append({
+                'data': [getattr(manavalue, colour.attr) for manavalue in manavalues],
+                'backgroundColor': [colour.bgcolour] * len(manavalues),
+                'barPercentage': 1.0,
+                'borderColor': 'rgba(0, 0, 0, 0.5)',
+                'borderWidth': 1,
+                'label': colour.name,
+            })
+
+        charts.append({
+            'id': 'colours_by_mana_value',
+            'type': 'bar',
+            'data': {
+                'datasets': datasets,
+                'labels': [manavalue.name for manavalue in manavalues],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Colours By Mana Value',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                },
+            },
+        })
+
+        # Total cards by colour.
+        charts.append({
+            'id': 'cards_by_colour',
+            'type': 'bar',
+            'data': {
+                'datasets': [{
+                    'data': [statcolour.total for statcolour in statcolours],
+                    'backgroundColor': [statcolour.bgcolour for statcolour in statcolours],
+                    'borderColor': 'rgba(0, 0, 0, 0.5)',
+                    'borderWidth': 1,
+                    'label': 'Count',
+                }],
+                'labels': [statcolour.name for statcolour in statcolours],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Total Cards By Colour',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                },
+            },
+        })
+
+        # Commanders by colour.
+        charts.append({
+            'id': 'legends_by_colour',
+            'type': 'pie',
+            'data': {
+                'datasets': [{
+                    'data': [statcolour.commanders for statcolour in statcolours],
+                    'backgroundColor': [statcolour.bgcolour for statcolour in statcolours],
+                    'borderColor': 'rgba(0, 0, 0, 0.5)',
+                    'borderWidth': 1,
+                    'label': 'Count',
+                }],
+                'labels': [statcolour.name for statcolour in statcolours],
+            },
+            'options': {
+                'plugins': {
+                    'legend': {
+                        'display': False,
+                    },
+                    'title': {
+                        'display': True,
+                        'font': {'size': '24'},
+                        'text': 'Commanders By Colour',
+                        'padding': {
+                            'bottom': 30,
+                        },
+                    },
+                },
+            },
+        })
+
+        context['charts'] = charts
+        return context
 
 
 class CreateCardView(LoginRequiredMixin, DetailView):

@@ -6,6 +6,7 @@ urlpatterns = [
     # Main web views.
     path('', views.ListSetsView.as_view(), name='list-sets'),
     path('view-set/<int:pk>', views.DisplaySetView.as_view(), name='view-set'),
+    path('set-stats/<int:pk>', views.SetStatsView.as_view(), name='set-stats'),
     path('create-card/<int:pk>', views.CreateCardView.as_view(), name='create-card'),
     path('edit-card-front/<int:pk>', views.EditCardFrontView.as_view(), name='edit-card-front'),
     path('edit-card-back/<int:pk>', views.EditCardBackView.as_view(), name='edit-card-back'),

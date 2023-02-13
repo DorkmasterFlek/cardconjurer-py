@@ -8,6 +8,7 @@ import urllib.request
 from django.core.files.base import ContentFile
 from django.db import models, transaction
 from django.utils.deconstruct import deconstructible
+from django.utils.functional import cached_property
 
 
 # *** Helper functions for uploaded art and final generated card image paths for where to save them.
@@ -248,7 +249,7 @@ class Card(models.Model):
 
         return line.strip()
 
-    def _has_type(self, value):
+    def has_type(self, value):
         """Helper function to check if a card has a given type on its type line (not subtypes).
 
         Args:
@@ -259,7 +260,7 @@ class Card(models.Model):
         """
         return value.lower() in [s.lower() for s in self.types]
 
-    def _has_subtype(self, value):
+    def has_subtype(self, value):
         """Helper function to check if a card has a given subtype on its type line.
 
         Args:
@@ -320,199 +321,121 @@ class Card(models.Model):
 
     # *** Main properties from JSON data.
 
-    @property
-    def name(self):
-        """
-        Returns:
-            str: Card name (title) from front face.
-        """
+    @cached_property
+    def name(self) -> str:
         return self._get_text('title', remove_symbols=True) or 'Unknown'
 
-    @property
-    def name_back(self):
-        """
-        Returns:
-            str: Card name (title) from back face.
-        """
+    @cached_property
+    def name_back(self) -> str:
         return self._get_text('title', self.back, remove_symbols=True) or 'Unknown'
 
-    @property
-    def short_name(self):
-        """
-        Returns:
-            str: Short name (title) from front face, for names that have an epithet.
-        """
+    @cached_property
+    def short_name(self) -> str:
         return self.name.split(',', 1)[0]
 
-    @property
-    def short_name_back(self):
-        """
-        Returns:
-            str: Short name (title) from back face, for names that have an epithet.
-        """
+    @cached_property
+    def short_name_back(self) -> str:
         return self.name_back.split(',', 1)[0]
 
-    @property
-    def cost(self):
-        """
-        Returns:
-            str: Mana cost from front face.
-        """
+    @cached_property
+    def cost(self) -> str:
         return self._get_text('mana')
 
-    @property
-    def types(self):
-        """
-        Returns:
-            list[str]: List of card types for front face (i.e. everything before the dash).
-        """
+    @cached_property
+    def mana_value(self) -> int:
+        def val_from_part(part):
+            if part.isdigit():
+                return int(part)
+            else:
+                return 1
+
+        val = 0
+
+        for component in re.findall(r'{([^{}]+)}', self.cost, re.IGNORECASE):
+            val += max([val_from_part(part) for part in component.split('/')])
+
+        return val
+
+    @cached_property
+    def types(self) -> list[str]:
         return self._get_type_line_data(0)
 
-    @property
-    def types_back(self):
-        """
-        Returns:
-            list[str]: List of card types for back face (i.e. everything before the dash).
-        """
+    @cached_property
+    def types_back(self) -> list[str]:
         return self._get_type_line_data(0, self.back)
 
-    @property
-    def subtypes(self):
-        """
-        Returns:
-            list[str]: List of card subtypes for front face (i.e. everything after the dash).
-        """
+    @cached_property
+    def subtypes(self) -> list[str]:
         return self._get_type_line_data(1)
 
-    @property
-    def subtypes_back(self):
-        """
-        Returns:
-            list[str]: List of card subtypes for back face (i.e. everything after the dash).
-        """
+    @cached_property
+    def subtypes_back(self) -> list[str]:
         return self._get_type_line_data(1, self.back)
 
-    @property
-    def rules(self):
-        """
-        Returns:
-            str: Rules text for front face.
-        """
+    @cached_property
+    def rules(self) -> str:
         return self._get_rules_data(0)
 
-    @property
-    def rules_back(self):
-        """
-        Returns:
-            str: Rules text for back face.
-        """
+    @cached_property
+    def rules_back(self) -> str:
         return self._get_rules_data(0, self.back)
 
-    @property
-    def flavor(self):
-        """
-        Returns:
-            str: Flavor text for front face.
-        """
+    @cached_property
+    def flavor(self) -> str:
         return self._get_rules_data(1)
 
-    @property
-    def flavor_back(self):
-        """
-        Returns:
-            str: Flavor text for back face.
-        """
+    @cached_property
+    def flavor_back(self) -> str:
         return self._get_rules_data(1, self.back)
 
-    @property
-    def pt(self):
-        """
-        Returns:
-            str: Power/toughness for front face.
-        """
+    @cached_property
+    def pt(self) -> str:
         return self._get_text('pt')
 
-    @property
-    def pt_back(self):
-        """
-        Returns:
-            str: Power/toughness for back face.
-        """
+    @cached_property
+    def pt_back(self) -> str:
         return self._get_text('pt', self.back)
 
-    @property
-    def loyalty(self):
-        """
-        Returns:
-            str: Starting loyalty for front face.
-        """
+    @cached_property
+    def loyalty(self) -> str:
         return self._get_text('loyalty')
 
-    @property
-    def loyalty_back(self):
-        """
-        Returns:
-            str: Starting loyalty for back face.
-        """
+    @cached_property
+    def loyalty_back(self) -> str:
         return self._get_text('pt', self.back)
 
     # *** Helper properties to identify certain conditions.
 
-    @property
-    def is_double_faced(self):
-        """
-        Returns:
-            bool: True if this is a double-faced card.
-        """
+    @cached_property
+    def is_double_faced(self) -> bool:
         return bool(self.back)
 
-    @property
-    def is_creature(self):
-        """
-        Returns:
-            bool: True if creature.
-        """
-        return self._has_type("creature")
+    @cached_property
+    def is_creature(self) -> bool:
+        return self.has_type("creature")
 
-    @property
-    def is_legendary(self):
-        """
-        Returns:
-            bool: True if legendary.
-        """
-        return self._has_type("legendary")
+    @cached_property
+    def is_legendary(self) -> bool:
+        return self.has_type("legendary")
 
-    @property
-    def is_artifact(self):
-        """
-        Returns:
-            bool: True if artifact.
-        """
-        return self._has_type("artifact")
+    @cached_property
+    def is_artifact(self) -> bool:
+        return self.has_type("artifact")
 
-    @property
-    def is_land(self):
-        """
-        Returns:
-            bool: True if land.
-        """
-        return self._has_type("land")
+    @cached_property
+    def is_land(self) -> bool:
+        return self.has_type("land")
 
-    @property
-    def is_token(self):
-        """
-        Returns:
-            bool: True if card is a token.
-        """
-        return self._has_type("token")
+    @cached_property
+    def is_token(self) -> bool:
+        return self.has_type("token")
 
-    @property
-    def colours(self):
-        """
-        Returns:
-            list[Colour]: List of colours this card has in its cost.
-        """
+    @cached_property
+    def can_be_commander(self) -> bool:
+        return self.is_legendary and (self.is_creature or "can be your commander" in self.rules.lower())
 
+    @cached_property
+    def colours(self) -> list[Colour]:
         colours = []
         cost = self.cost.upper()
 
@@ -528,8 +451,24 @@ class Card(models.Model):
 
         return colours
 
-    @property
-    def set_number_key(self):
+    @cached_property
+    def first_colour(self) -> Colour:
+        return self.colours[0] if not self.is_colourless else None
+
+    @cached_property
+    def is_monocolour(self) -> bool:
+        return len(self.colours) == 1
+
+    @cached_property
+    def is_multicolour(self) -> bool:
+        return len(self.colours) > 1
+
+    @cached_property
+    def is_colourless(self) -> bool:
+        return len(self.colours) == 0
+
+    @cached_property
+    def set_number_key(self) -> tuple:
         """
         Returns:
             tuple: Tuple that can be used as a sorting key for set number order logic.
@@ -539,10 +478,9 @@ class Card(models.Model):
         token_key = 1 if not self.is_token else 2
 
         # Colours go in WUBRG order, then multicolour, then colourless.
-        colours = self.colours
-        if len(colours) == 1:
-            colour_key = colours[0]
-        elif len(colours) > 1:
+        if self.is_monocolour:
+            colour_key = self.colours[0]
+        elif self.is_multicolour:
             colour_key = Colour.MULTICOLOR
         else:
             colour_key = Colour.COLORLESS
