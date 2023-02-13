@@ -1,0 +1,39 @@
+{% extends "creator/_layout.html" %}
+{% load symbols %}
+
+{% block content %}
+    <div class="card my-2">
+        <div class="card-body">
+            <h1 class="card-title">{{ set.name }} <span class="badge bg-secondary">{{ set.code }}</span></h1>
+            <p>
+                <a class="btn btn-secondary" href="{% url 'list-sets' %}">Back to Set List</a>
+            </p>
+            <div class="row row-cols-1 row-cols-lg-2">
+                {% for chart in charts %}
+                    {# Show the chart. #}
+                    <div class="col my-2">
+                        <canvas id="{{ chart.id }}"></canvas>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.1/chart.umd.min.js"></script>
+
+    {#  JSON encode data for each chart.  #}
+    {% for chart in charts %}
+        {% with "chart_"|add:chart.id as data_id %}
+            {{ chart|json_script:data_id }}
+        {% endwith %}
+    {% endfor %}
+
+    {#  Javascript load each chart.  #}
+    <script type="application/javascript">
+        let config;
+        {% for chart in charts %}
+            config = JSON.parse($("#{{ "chart_"|add:chart.id }}").text());
+            new Chart($("#{{ chart.id }}").get(0), config);
+        {% endfor %}
+    </script>
+{% endblock %}
